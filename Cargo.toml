@@ -1,0 +1,11 @@
+[package]
+name = "proxy-wasm-crash-example"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "proxy_wasm_crash_example"
+crate-type = ["cdylib"]
+
+[dependencies]
+proxy-wasm = "0.1.4"

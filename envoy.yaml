@@ -1,0 +1,62 @@
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901
+
+static_resources:
+  clusters:
+    - name: example
+      type: STRICT_DNS
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+      load_assignment:
+        cluster_name: example
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: www.example.com
+                      port_value: 443
+
+  listeners:
+    - name: egress
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 8080
+      filter_chains:
+        - filters:
+          - name: envoy.filters.network.wasm
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
+              config:
+                name: crash
+                fail_open: true
+                vm_config:
+                  runtime: envoy.wasm.runtime.v8
+                  code:
+                    local:
+                      filename: /proxy_wasm_crash_example.wasm
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: example
+              http_filters:
+                - name: envoy.filters.http.router
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+              route_config:
+                virtual_hosts:
+                  - name: example
+                    domains:
+                      - '*'
+                    routes:
+                      - match:
+                          prefix: /
+                        route:
+                          cluster: example
+
